@@ -13,22 +13,31 @@ import requests
 import base64
 import pandas as pd
 
+# NEW: PyVista and stpyvista imports
+import pyvista as pv
+from stpyvista import stpyvista
+from stpyvista.utils import start_xvfb
+
+# Start virtual framebuffer for headless rendering (only once)
+if "IS_XVFB_RUNNING" not in st.session_state:
+    start_xvfb()
+    st.session_state.IS_XVFB_RUNNING = True
+
 # Check if GPU is available and use it
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 feature_extractor = GLPNImageProcessor.from_pretrained("vinvino02/glpn-nyu")
 model = GLPNForDepthEstimation.from_pretrained("vinvino02/glpn-nyu").to(device)
 
-
-def load_lottie_url(ur: str):
-    response=requests.get(lottie_url)
-    if response.status_code !=200:
+def load_lottie_url(lottie_url: str):
+    response = requests.get(lottie_url)
+    if response.status_code != 200:
         return None
     return response.json()
 
 lottie_url = "https://lottie.host/de2be76c-d3bf-467a-a69c-64fbdd9b8de4/i1ZZxc6oiV.json"
-lottie_animation=load_lottie_url(lottie_url)
-        
+lottie_animation = load_lottie_url(lottie_url)
+
 # Load the CNN model for tumor classification
 cnn_model = load_model('model/buildspace_tumor_classifier.h5')
 cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -109,59 +118,57 @@ def main():
         layout="wide"
     )
 
-    gif_animation=''
-
-    col1,col2=st.columns(2)
+    col1, col2 = st.columns(2)
     with col1:
         st.markdown(
             "<h1 style='animation: fadein 1s ease-in;'>Brainiac</h1>",
             unsafe_allow_html=True,
         )
-        description='''Brainiac is a web application designed to help users visualize and classify brain MRI scans.'''
+        description = '''Brainiac is a web application designed to help users visualize and classify brain MRI scans.'''
         st.markdown(
             description,
             unsafe_allow_html=True,
         )
 
-        with col2:
-            if lottie_animation:
-                with st.container():
-                    st_lottie(lottie_animation,height=140, width=140)
-            else:
-                st.write("Failed to load Lottie Animation")
+    with col2:
+        if lottie_animation:
+            with st.container():
+                st_lottie(lottie_animation, height=140, width=140)
+        else:
+            st.write("Failed to load Lottie Animation")
+
+    with st.sidebar:
+        uploaded_file = st.file_uploader("Upload your MRI Scan...", type=["jpg", "jpeg", "png"])
+        classify_button = st.button("Classify")
+        visualize_button = st.button("Visualize")
 
 
-        with st.sidebar:
-            uploaded_file=st.file_uploader("Upload your MRI Scan...",type=["jpg","jpeg","png"])
-            classify_button=st.button("Classify")
-            visualize_button=st.button("Visualize")
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="Uploaded MRI Scan", use_column_width=True)
 
+        if visualize_button:
+            with st.spinner("Processing"):
+                pcd = process_image(image)
+                # Convert Open3D point cloud to numpy array
+                points = np.asarray(pcd.points)
+                if len(points) == 0:
+                    st.error("No points found in the point cloud.")
+                else:
+                    # PyVista visualization
+                    cloud = pv.PolyData(points)
+                    plotter = pv.Plotter(window_size=[600, 600])
+                    plotter.add_mesh(cloud, color='white', point_size=2, render_points_as_spheres=True)
+                    plotter.view_isometric()
+                    plotter.background_color = 'black'
+                    stpyvista(plotter, key="3d_plot")
 
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file).convert("RGB")
-            st.image(image,caption="Uploaded MRI Scan", use_column_width=True)
-
-
-            if visualize_button:
-                with st.spinner("Processing"):
-                    pcd=process_image(image)
-                    vis=o3d.visualization.Visualizer()
-                    vis.create_window(width=800, height=800)
-                    vis.add_geometry(pcd)
-                    vis.get_render_option().point_size=2
-                    vis.run()
-                    vis.destroy_window()
-
-            if classify_button:
-                with st.spinner("Classifying..."):
-                    predicted_class = classify_tumor(image)
-                st.success("Classification Complete!")
-                st.header("Classification Result:")
-                st.write(f"Tumor Classification: {predicted_class}")
-
-
-        
+        if classify_button:
+            with st.spinner("Classifying..."):
+                predicted_class = classify_tumor(image)
+            st.success("Classification Complete!")
+            st.header("Classification Result:")
+            st.write(f"Tumor Classification: {predicted_class}")
 
 if __name__ == '__main__':
     main()
-
