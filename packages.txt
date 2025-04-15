@@ -1,0 +1,4 @@
+libgl1-mesa-glx
+xvfb
+freeglut3-dev
+libgtk2.0-dev
