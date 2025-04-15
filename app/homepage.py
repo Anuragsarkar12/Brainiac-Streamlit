@@ -7,13 +7,11 @@ import numpy as np
 import open3d as o3d
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-import streamlit_lottie
 from streamlit_lottie import st_lottie
 import requests
-import base64
 import pandas as pd
 
-# NEW: PyVista and stpyvista imports
+# PyVista and stpyvista imports
 import pyvista as pv
 from stpyvista import stpyvista
 from stpyvista.utils import start_xvfb
@@ -141,7 +139,8 @@ def main():
         uploaded_file = st.file_uploader("Upload your MRI Scan...", type=["jpg", "jpeg", "png"])
         classify_button = st.button("Classify")
         visualize_button = st.button("Visualize")
-
+        # Documentation button
+        st.page_link("pages/1_Documentation.py", label="📄 Documentation", icon="📄")
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -150,20 +149,16 @@ def main():
         if visualize_button:
             with st.spinner("Processing"):
                 pcd = process_image(image)
-                # Convert Open3D point cloud to numpy array
                 points = np.asarray(pcd.points)
                 if len(points) == 0:
                     st.error("No points found in the point cloud.")
                 else:
-                    # PyVista visualization
                     cloud = pv.PolyData(points)
-                    # ... after creating your point cloud 'cloud'
                     plotter = pv.Plotter(window_size=[600, 600])
-                    plotter.set_background('black')
+                    plotter.set_background('black')  # Correct way to set background
                     plotter.add_mesh(cloud, color='white', point_size=2, render_points_as_spheres=True)
                     plotter.view_isometric()
                     stpyvista(plotter, key="3d_plot")
-
 
         if classify_button:
             with st.spinner("Classifying..."):
