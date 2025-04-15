@@ -139,8 +139,6 @@ def main():
         uploaded_file = st.file_uploader("Upload your MRI Scan...", type=["jpg", "jpeg", "png"])
         classify_button = st.button("Classify")
         visualize_button = st.button("Visualize")
-        # Documentation button
-        st.page_link("pages/1_Documentation.py", label="📄 Documentation", icon="📄")
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
