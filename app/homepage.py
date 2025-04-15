@@ -135,28 +135,37 @@ def main():
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Uploaded MRI Scan", use_column_width=True)
+    if visualize_button:
+        with st.spinner("Processing"):
+            pcd = process_image(image)
+            points = np.asarray(pcd.points)
+            if len(points) == 0:
+                st.error("No points found in the point cloud.")
+            else:
+                df = pd.DataFrame(points, columns=['x', 'y', 'z'])
+            # Calculate centroid for view center
+                centroid = df[['x', 'y', 'z']].mean().values.tolist()
+            # Calculate a reasonable zoom (smaller = more zoomed in)
+                zoom = 0.5  # You can adjust this value as needed
 
-        if visualize_button:
-            with st.spinner("Processing"):
-                pcd = process_image(image)
-                points = np.asarray(pcd.points)
-                if len(points) == 0:
-                    st.error("No points found in the point cloud.")
-                else:
-                    # PyDeck visualization
-                    df = pd.DataFrame(points, columns=['x', 'y', 'z'])
-                    layer = pdk.Layer(
-                        "PointCloudLayer",
-                        data=df,
-                        get_position='[x, y, z]',
-                        get_color='[255, 255, 255, 160]',
-                        point_size=2,
-                        pickable=False,
-                    )
-                    view_state = pdk.ViewState(
-                        longitude=0, latitude=0, zoom=0, pitch=45, bearing=0
-                    )
-                    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+                layer = pdk.Layer(
+                    "PointCloudLayer",
+                    data=df,
+                    get_position='[x, y, z]',
+                    get_color='[255, 255, 255, 160]',
+                    point_size=2,
+                    pickable=False,
+                )
+                view_state = pdk.ViewState(
+                    longitude=centroid[0],
+                    latitude=centroid[1],
+                    zoom=zoom,
+                    pitch=45,
+                    bearing=0,
+                    target=[centroid[0], centroid[1], centroid[2]]
+                )
+                st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+
 
         if classify_button:
             with st.spinner("Classifying..."):
