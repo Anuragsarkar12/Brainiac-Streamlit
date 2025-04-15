@@ -157,11 +157,13 @@ def main():
                 else:
                     # PyVista visualization
                     cloud = pv.PolyData(points)
+                    # ... after creating your point cloud 'cloud'
                     plotter = pv.Plotter(window_size=[600, 600])
+                    plotter.set_background('black')
                     plotter.add_mesh(cloud, color='white', point_size=2, render_points_as_spheres=True)
                     plotter.view_isometric()
-                    plotter.background_color = 'black'
                     stpyvista(plotter, key="3d_plot")
+
 
         if classify_button:
             with st.spinner("Classifying..."):
