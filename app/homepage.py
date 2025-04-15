@@ -10,16 +10,7 @@ from tensorflow.keras.models import load_model
 from streamlit_lottie import st_lottie
 import requests
 import pandas as pd
-
-# PyVista and stpyvista imports
-import pyvista as pv
-from stpyvista import stpyvista
-from stpyvista.utils import start_xvfb
-
-# Start virtual framebuffer for headless rendering (only once)
-if "IS_XVFB_RUNNING" not in st.session_state:
-    start_xvfb()
-    st.session_state.IS_XVFB_RUNNING = True
+import pydeck as pdk
 
 # Check if GPU is available and use it
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -139,6 +130,8 @@ def main():
         uploaded_file = st.file_uploader("Upload your MRI Scan...", type=["jpg", "jpeg", "png"])
         classify_button = st.button("Classify")
         visualize_button = st.button("Visualize")
+        # Documentation button (if you have a documentation page in pages/)
+        st.page_link("pages/1_Documentation.py", label="📄 Documentation", icon="📄")
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
@@ -151,12 +144,20 @@ def main():
                 if len(points) == 0:
                     st.error("No points found in the point cloud.")
                 else:
-                    cloud = pv.PolyData(points)
-                    plotter = pv.Plotter(window_size=[600, 600])
-                    plotter.set_background('black')  # Correct way to set background
-                    plotter.add_mesh(cloud, color='white', point_size=2, render_points_as_spheres=True)
-                    plotter.view_isometric()
-                    stpyvista(plotter, key="3d_plot")
+                    # PyDeck visualization
+                    df = pd.DataFrame(points, columns=['x', 'y', 'z'])
+                    layer = pdk.Layer(
+                        "PointCloudLayer",
+                        data=df,
+                        get_position='[x, y, z]',
+                        get_color='[255, 255, 255, 160]',
+                        point_size=2,
+                        pickable=False,
+                    )
+                    view_state = pdk.ViewState(
+                        longitude=0, latitude=0, zoom=0, pitch=45, bearing=0
+                    )
+                    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
 
         if classify_button:
             with st.spinner("Classifying..."):
