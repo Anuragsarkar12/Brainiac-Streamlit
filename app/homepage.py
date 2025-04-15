@@ -155,7 +155,7 @@ def main():
                 with st.spinner("Classifying..."):
                     predicted_class = classify_tumor(image)
                 st.success("Classification Complete!")
-                st.header("Classificatioon Result:")
+                st.header("Classification Result:")
                 st.write(f"Tumor Classification: {predicted_class}")
 
 
