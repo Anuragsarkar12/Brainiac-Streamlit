@@ -132,7 +132,8 @@ def main():
 
 
         with st.sidebar:
-            uploaded_file=st.file_uploader("U[pload your MRI Scan...",type=["jpg","jpeg","png"])
+            st.page_link("pages/1_Documentation.py", label="📄 Documentation", icon="📄")
+            uploaded_file=st.file_uploader("Upload your MRI Scan...",type=["jpg","jpeg","png"])
             classify_button=st.button("Classify")
             visualize_button=st.button("Visualize")
 
